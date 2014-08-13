@@ -49,8 +49,9 @@
         	<exclude org="ant" />
         </dependency>
         
-        <dependency org="org.apache.santuario" name="xmlsec" rev="1.4.3"  />
-        
+        <dependency org="org.apache.santuario" name="xmlsec" rev="1.5.7"  >
+		   		<artifact name="xmlsec" type="jar" />
+        </dependency>
         <exclude org="avalon-framework" />
         <exclude org="commons-beanutils" />
         <exclude org="javax.jms" />

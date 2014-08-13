@@ -123,6 +123,8 @@ Defaults to artifact,post,redirect,soap.</li>
 <li>oiosaml-sp.authenticationhandler: FQCN of a class implementing dk.itst.oiosaml.sp.AuthenticationHandler. This class is instantiated and invoked when a new user is authenticated (ie a valid saml assertion is received).</li>
 <li>oiosaml-sp.develmode: Enable or disable developer mode. See <a href="developers.html">developer's guide</a> for more information.</li>
 <li>oiosaml-sp.showerror: Enable or disable detailed errormessages and stacktraces shown in the browser - should ALWAYS be false in production.</li>
+<li>oiosaml-sp.service.signon.ds.signaturemethod: Digital Signature algorithm to be used for SignonService. Default value is RSA-SHA1.The value is a combination of the digital signature namespace and the algorithm name. Some Possible values http://www.w3.org/2001/04/xmldsig-more#rsa-sha256, http://www.w3.org/2001/04/xmldsig-more#rsa-sha384, http://www.w3.org/2001/04/xmldsig-more#rsa-sha512, http://www.w3.org/2001/04/xmldsig-more#rsa-sha224, http://www.w3.org/2001/04/xmldsig-more#rsa-sha256 etc.</li>
+<li>oiosaml-sp.service.signon.ds.digestmethod: Digest algorithm to be used for SignonService. Default value is SHA-1. The value is a combination of the digital signature namespace and the algorithm name. Some Possible values http://www.w3.org/2001/04/xmlenc#sha256, http://www.w3.org/2001/04/xmlenc#sha512, http://www.w3.org/2001/04/xmldsig-more#sha384, http://www.w3.org/2001/04/xmldsig-more#sha224 etc.</li>
 </ul>
 
 <h3>Service Provider Metadata</h3>
