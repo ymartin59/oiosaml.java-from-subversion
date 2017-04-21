@@ -41,11 +41,11 @@ import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
 import org.apache.commons.configuration.Configuration;
+
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.ConfigurationException;
+import org.opensaml.xml.security.BasicSecurityConfiguration;
 
 import dk.itst.oiosaml.common.SAMLUtil;
 import dk.itst.oiosaml.configuration.FileConfiguration;
@@ -68,6 +68,9 @@ import dk.itst.oiosaml.sp.service.session.SessionCleaner;
 import dk.itst.oiosaml.sp.service.session.SessionHandler;
 import dk.itst.oiosaml.sp.service.session.SessionHandlerFactory;
 import dk.itst.oiosaml.sp.service.util.Constants;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
+
 
 /**
  * Servlet filter for checking if the user is authenticated.
@@ -263,6 +266,10 @@ public class SPFilter implements Filter {
 		setHostname();
 		sessionHandlerFactory = SessionHandlerFactory.Factory.newInstance(conf);
 		sessionHandlerFactory.getHandler().resetReplayProtection(conf.getInt(Constants.PROP_NUM_TRACKED_ASSERTIONIDS));
+
+		BasicSecurityConfiguration config = (BasicSecurityConfiguration) org.opensaml.Configuration.getGlobalSecurityConfiguration();
+		config.registerSignatureAlgorithmURI("RSA", conf.getString(Constants.SIGNATURE_ALGORITHM, "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"));
+
 		log.info("Home url: " + conf.getString(Constants.PROP_HOME));
 		log.info("Assurance level: " + conf.getInt(Constants.PROP_ASSURANCE_LEVEL));
 		log.info("SP entity ID: " + SPMetadata.getInstance().getEntityID());

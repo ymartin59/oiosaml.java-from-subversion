@@ -128,6 +128,7 @@ Defaults to artifact,post,redirect,soap.</li>
 <li>oiosaml-sp.authenticationhandler: FQCN of a class implementing dk.itst.oiosaml.sp.AuthenticationHandler. This class is instantiated and invoked when a new user is authenticated (ie a valid saml assertion is received).</li>
 <li>oiosaml-sp.develmode: Enable or disable developer mode. See <a href="developers.html">developer's guide</a> for more information.</li>
 <li>oiosaml-sp.showerror: Enable or disable detailed errormessages and stacktraces shown in the browser - should ALWAYS be false in production.</li>
+<li>oiosaml-sp.signature.algorithm: Set signature algorithm. Defaults to 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256', but can be configured to 'http://www.w3.org/2000/09/xmldsig#rsa-sha1' as well.</li>
 </ul>
 
 <h3>Service Provider Metadata</h3>
