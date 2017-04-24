@@ -61,6 +61,8 @@ public interface OIOSAMLConstants {
 	/** Hashing algorithms */
     public static final String SHA_HASH_ALGORHTM = "SHA-1";
 	public static final String SHA1_WITH_RSA = "SHA1withRSA";
+        public static final String SHA256_WITH_RSA = "SHA256withRSA";
+
     
     /** Code format */
     public static final String UTF_8 = "UTF-8";

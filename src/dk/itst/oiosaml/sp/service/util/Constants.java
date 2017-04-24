@@ -152,6 +152,8 @@ public interface Constants {
 	static final String SAML_SAMLART = "SAMLart";
 
 	static final String SHA1_WITH_RSA = "SHA1withRSA";
+        static final String SHA256_WITH_RSA = "SHA256withRSA";
+
 	
 	static final String INIT_OIOSAML_HOME = "oiosaml-j.home";
 	

@@ -140,10 +140,18 @@ public final class Utils {
 			log.debug("key....:" + key.toString());
 
 		try {
-			Signature signer = Signature.getInstance(OIOSAMLConstants.SHA1_WITH_RSA);
-			signer.initVerify(key);
-			signer.update(data);
-			return signer.verify(sig);
+			try {
+				Signature signer = Signature.getInstance(OIOSAMLConstants.SHA1_WITH_RSA);
+				signer.initVerify(key);
+				signer.update(data);
+				return signer.verify(sig);
+			}
+			catch (SignatureException ex) {
+                                Signature signer = Signature.getInstance(OIOSAMLConstants.SHA256_WITH_RSA);
+                                signer.initVerify(key);
+                                signer.update(data);
+                                return signer.verify(sig);
+			}
 		} catch (InvalidKeyException e) {
 			throw new WrappedException(Layer.CLIENT, e);
 		} catch (NoSuchAlgorithmException e) {
