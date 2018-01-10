@@ -263,10 +263,24 @@ public class IdpMetadata {
 		private org.opensaml.xml.signature.X509Certificate getCertificateNode() {
 			if (idpSSODescriptor != null && idpSSODescriptor.getKeyDescriptors().size() > 0) {
 				KeyDescriptor keyDescriptor = null;
-				for(KeyDescriptor kd  : idpSSODescriptor.getKeyDescriptors()){
-					if(kd.getUse().equals(UsageType.SIGNING)){
-						keyDescriptor=kd;
+				KeyDescriptor keyDescriptorUnspecified = null;
+				
+				for (KeyDescriptor kd : idpSSODescriptor.getKeyDescriptors()) {
+					if (kd.getUse().equals(UsageType.SIGNING)) {
+						keyDescriptor = kd;
 					}
+					else if (kd.getUse().equals(UsageType.UNSPECIFIED)) {
+						keyDescriptorUnspecified = kd;
+					}
+				}
+				
+				// fallback to any unspecified keyDescriptor
+				if (keyDescriptor == null) {
+					keyDescriptor = keyDescriptorUnspecified;
+				}
+				
+				if (keyDescriptor == null) {
+					throw new IllegalStateException("IdP Metadata does not contain a KeyDescriptor for signing: " + getEntityID());
 				}
 
 				if (keyDescriptor.getKeyInfo().getX509Datas().size() > 0) {

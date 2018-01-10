@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>dk.digst</groupId>
 		<artifactId>oiosaml2.java-parent</artifactId>
-		<version>2.0.0</version>
+		<version>2.0.1</version>
 	</parent>
 
 	<build>
@@ -26,14 +26,14 @@
 			</plugin>
 		</plugins>
 
-		<finalName>oiosaml2-demo</finalName>
+		<finalName>oiosaml2-demo.java</finalName>
 	</build>
 
 	<dependencies>
 		<dependency>
 			<groupId>dk.digst</groupId>
 			<artifactId>oiosaml2.java</artifactId>
-			<version>2.0.0</version>
+			<version>2.0.1</version>
 		</dependency>
 
 		<dependency>
