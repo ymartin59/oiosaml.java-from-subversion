@@ -295,7 +295,7 @@ public class DispatcherServlet extends HttpServlet {
 		} else {
 			VelocityContext ctx = new VelocityContext();
 
-			if (configuration.getBoolean(Constants.PROP_SHOW_ERROR, false)) {
+			if (configuration != null && configuration.getBoolean(Constants.PROP_SHOW_ERROR, false)) {
 				ctx.put(Constants.ATTRIBUTE_ERROR, e.getMessage());
 				ctx.put(Constants.ATTRIBUTE_EXCEPTION, e);
 			} else {

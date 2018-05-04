@@ -64,6 +64,7 @@ import org.opensaml.saml2.metadata.AssertionConsumerService;
 import org.opensaml.saml2.metadata.AttributeConsumingService;
 import org.opensaml.saml2.metadata.Company;
 import org.opensaml.saml2.metadata.EmailAddress;
+import org.opensaml.saml2.metadata.GivenName;
 import org.opensaml.saml2.metadata.LocalizedString;
 import org.opensaml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml2.metadata.Organization;
@@ -73,6 +74,8 @@ import org.opensaml.saml2.metadata.OrganizationURL;
 import org.opensaml.saml2.metadata.RequestedAttribute;
 import org.opensaml.saml2.metadata.ServiceName;
 import org.opensaml.saml2.metadata.SingleLogoutService;
+import org.opensaml.saml2.metadata.SurName;
+import org.opensaml.saml2.metadata.TelephoneNumber;
 import org.opensaml.xml.ElementExtensibleXMLObject;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilder;
@@ -620,6 +623,24 @@ public class SAMLUtil {
 		return c;
 	}
 	
+	public static GivenName createGivenName(String givenName) {
+		GivenName g = buildXMLObject(GivenName.class);
+		g.setName(givenName);
+		return g;
+	}
+	
+	public static TelephoneNumber createTelephoneNumber(String phone) {
+		TelephoneNumber t = buildXMLObject(TelephoneNumber.class);
+		t.setNumber(phone);
+		return t;
+	}
+
+	public static SurName createSurName(String surName) {
+		SurName s = buildXMLObject(SurName.class);
+		s.setName(surName);
+		return s;
+	}
+
 	/**
 	 * Get the first element of a specific type from a parent element.
 	 * @param obj The parent element. If this is <code>null</code>, <code>null</code> is returned.

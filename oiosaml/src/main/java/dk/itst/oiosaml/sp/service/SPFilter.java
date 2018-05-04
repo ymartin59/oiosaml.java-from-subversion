@@ -136,13 +136,17 @@ public class SPFilter implements Filter {
 	 *            The servletResponse
 	 */
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		if (log.isDebugEnabled())
+		if (log.isDebugEnabled()) {
 			log.debug("OIOSAML-J SP Filter invoked");
+		}
+		
 		if (!(request instanceof HttpServletRequest)) {
 			throw new RuntimeException("Not supported operation...");
 		}
+		
 		HttpServletRequest servletRequest = ((HttpServletRequest) request);
 		Audit.init(servletRequest);
+
 		if (!isFilterInitialized()) {
 			try {
 				Configuration config = SAMLConfigurationFactory.getConfiguration().getSystemConfiguration();
@@ -152,14 +156,22 @@ public class SPFilter implements Filter {
 				return;
 			}
 		}
+
+		// Other libraries/frameworks might reset/overwrite our signature algorithm setting,
+		// so to ensure that we always use the configured setting for all requests, we set
+		// the signature algorithm on the configuration on every single request.
+		ensureSignatureAlgorithm();
+
 		if (conf.getSystemConfiguration().getBoolean(Constants.PROP_DEVEL_MODE, false)) {
 			log.warn("Running in debug mode, skipping regular filter");
 			develMode.doFilter(servletRequest, (HttpServletResponse) response, chain, conf.getSystemConfiguration());
 			return;
 		}
+		
 		if (cleanerRunning.compareAndSet(false, true)) {
 			SessionCleaner.startCleaner(sessionHandlerFactory.getHandler(), ((HttpServletRequest) request).getSession().getMaxInactiveInterval(), 30);
 		}
+
 		SessionHandler sessionHandler = sessionHandlerFactory.getHandler();
 		if (servletRequest.getServletPath().equals(conf.getSystemConfiguration().getProperty(Constants.PROP_SAML_SERVLET))) {
 			log.debug("Request to SAML servlet, access granted");
@@ -258,13 +270,17 @@ public class SPFilter implements Filter {
 		sessionHandlerFactory = SessionHandlerFactory.Factory.newInstance(conf);
 		sessionHandlerFactory.getHandler().resetReplayProtection(conf.getInt(Constants.PROP_NUM_TRACKED_ASSERTIONIDS));
 
-		BasicSecurityConfiguration config = (BasicSecurityConfiguration) org.opensaml.Configuration.getGlobalSecurityConfiguration();
-		config.registerSignatureAlgorithmURI("RSA", conf.getString(Constants.SIGNATURE_ALGORITHM, "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"));
-
 		log.info("Home url: " + conf.getString(Constants.PROP_HOME));
 		log.info("Assurance level: " + conf.getInt(Constants.PROP_ASSURANCE_LEVEL));
 		log.info("SP entity ID: " + SPMetadata.getInstance().getEntityID());
 		log.info("Base hostname: " + hostname);
+	}
+
+	private void ensureSignatureAlgorithm() {
+		Configuration localConfig = SAMLConfigurationFactory.getConfiguration().getSystemConfiguration();
+		BasicSecurityConfiguration samlConfig = (BasicSecurityConfiguration) org.opensaml.Configuration.getGlobalSecurityConfiguration();
+		
+		samlConfig.registerSignatureAlgorithmURI("RSA", localConfig.getString(Constants.SIGNATURE_ALGORITHM, "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"));
 	}
 
 	private void setHostname() {

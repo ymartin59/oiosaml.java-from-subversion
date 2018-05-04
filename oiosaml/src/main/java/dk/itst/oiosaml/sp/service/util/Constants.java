@@ -228,5 +228,11 @@ public interface Constants {
 	/**
 	 * Disable revocation check on OCES-test certificates. Default is true
 	 */
-	static final String DISABLE_OCES_TEST_CRL_CHECK = "oiosaml-cp.crl.disable-in-oces-test";
+	static final String DISABLE_OCES_TEST_CRL_CHECK_BAD_SPELLING = "oiosaml-cp.crl.disable-in-oces-test";
+	static final String DISABLE_OCES_TEST_CRL_CHECK = "oiosaml-sp.crl.disable-in-oces-test";
+	
+	/**
+	 * Enable eid compatibility - note that this effects how AuthnRequests are generated
+	 */
+	static final String PROP_EID_COMPATIBLE = "oiosaml-sp.eid.compatible";
 }

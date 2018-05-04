@@ -178,8 +178,15 @@ public class CRLChecker {
 		Exception error = null;
 
 		final boolean support_self_signed_certificates = conf.getBoolean(Constants.SELF_SIGNED_CERT_SUPPORT, false);
-		final boolean disable_check_on_oces_test_certificates = conf.getBoolean(Constants.DISABLE_OCES_TEST_CRL_CHECK, true);
-
+		
+		// to support a version of OIOSAML with bad spelling, we allow the bad spelling setting to overwrite the
+		// correct version, in case it is set.
+		boolean disable_check_on_oces_test_certificates = conf.getBoolean(Constants.DISABLE_OCES_TEST_CRL_CHECK, true);
+		final boolean disable_check_on_oces_test_certificates_bad_spelling = conf.getBoolean(Constants.DISABLE_OCES_TEST_CRL_CHECK_BAD_SPELLING, true);
+		if (!disable_check_on_oces_test_certificates_bad_spelling) {
+			disable_check_on_oces_test_certificates = false;
+		}
+		
 		if (support_self_signed_certificates) {
 			boolean selfSigned = certificate.getSubjectDN().equals(certificate.getIssuerDN());
 

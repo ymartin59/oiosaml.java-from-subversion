@@ -183,10 +183,10 @@ public class SingleVMSessionHandler implements SessionHandler {
 	public Request getRequest(String state) throws IllegalArgumentException {
 		TimeOutWrapper<Request> request = requests.remove(state);
 		if (request == null) {
-			throw new IllegalArgumentException("No request for state " + state);
+			log.error("No request for state " + state);
+			return null;
 		}
+
 		return request.getObject();
 	}
-
-
 }

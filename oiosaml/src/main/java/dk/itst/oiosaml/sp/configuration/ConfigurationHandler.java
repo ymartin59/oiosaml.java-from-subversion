@@ -48,10 +48,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import dk.itst.oiosaml.configuration.FileConfiguration;
-import dk.itst.oiosaml.configuration.SAMLConfigurationFactory;
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemFactory;
 import org.apache.commons.fileupload.FileUploadException;
@@ -78,8 +74,12 @@ import org.opensaml.xml.security.x509.BasicX509Credential;
 
 import dk.itst.oiosaml.common.OIOSAMLConstants;
 import dk.itst.oiosaml.common.SAMLUtil;
+import dk.itst.oiosaml.configuration.FileConfiguration;
+import dk.itst.oiosaml.configuration.SAMLConfigurationFactory;
 import dk.itst.oiosaml.error.Layer;
 import dk.itst.oiosaml.error.WrappedException;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
 import dk.itst.oiosaml.security.CredentialRepository;
 import dk.itst.oiosaml.sp.service.RequestContext;
 import dk.itst.oiosaml.sp.service.SAMLHandler;
@@ -126,20 +126,24 @@ public class ConfigurationHandler implements SAMLHandler {
 	public void handleGet(RequestContext context) throws ServletException, IOException {
 		HttpServletRequest request = context.getRequest();
 		HttpServletResponse response = context.getResponse();
+
 		if (request.getParameter("download") != null) {
 			byte[] conf = (byte[]) request.getSession().getAttribute(SESSION_CONFIGURATION);
 			if (conf == null) {
 				response.sendError(HttpServletResponse.SC_NOT_FOUND, "No configuration available for download");
 				return;
 			}
+			
 			response.setContentType("application/octet-stream");
 			response.setContentLength(conf.length);
 			response.addHeader("Content-disposition", "attachment; filename=oiosaml.java-config.zip");
 			response.getOutputStream().write(conf);
 			return;
 		}
-		if (!checkConfiguration(response))
+		
+		if (!checkConfiguration(response)) {
 			return;
+		}
 
 		Map<String, Object> params = getStandardParameters(request);
 
@@ -151,28 +155,37 @@ public class ConfigurationHandler implements SAMLHandler {
 		HttpServletRequest request = context.getRequest();
 		HttpServletResponse response = context.getResponse();
 
-		if (!checkConfiguration(response))
+		if (!checkConfiguration(response)) {
 			return;
+		}
 
 		List<?> parameters = extractParameterList(request);
 
 		String orgName = extractParameter("organisationName", parameters);
 		String orgUrl = extractParameter("organisationUrl", parameters);
 		String email = extractParameter("email", parameters);
+		String phone = extractParameter("phone", parameters);
+		String givenName = extractParameter("givenName", parameters);
+		String surName = extractParameter("surName", parameters);
 		String entityId = extractParameter("entityId", parameters);
 		final String password = extractParameter("keystorePassword", parameters);
 		byte[] metadata = extractFile("metadata", parameters).get();
 		FileItem ksData = extractFile("keystore", parameters);
 		byte[] keystore = null;
+		
 		if (ksData != null) {
 			keystore = ksData.get();
 		}
-		if (!checkNotNull(orgName, orgUrl, email, password, metadata, entityId) || metadata.length == 0 || (keystore == null && !Boolean.valueOf(extractParameter("createkeystore", parameters)))) {
+
+		if (!checkNotNull(orgName, orgUrl, email, phone, givenName, surName, password, metadata, entityId) || metadata.length == 0 || (keystore == null && !Boolean.valueOf(extractParameter("createkeystore", parameters)))) {
 			Map<String, Object> params = getStandardParameters(request);
 			params.put("error", "All fields must be filled.");
 			params.put("organisationName", orgName);
 			params.put("organisationUrl", orgUrl);
 			params.put("email", email);
+			params.put("phone", phone);
+			params.put("givenName", givenName);
+			params.put("surName", surName);
 			params.put("keystorePassword", password);
 			params.put("entityId", entityId);
 			log.info("Parameters not correct: " + params);
@@ -237,9 +250,26 @@ public class ConfigurationHandler implements SAMLHandler {
 			}
 		}
 
-		EntityDescriptor descriptor = generateSPDescriptor(getBaseUrl(request), entityId, credential, orgName, orgUrl, email, Boolean.valueOf(extractParameter("enableArtifact", parameters)), Boolean.valueOf(extractParameter("enablePost", parameters)),
-				Boolean.valueOf(extractParameter("enableSoap", parameters)), Boolean.valueOf(extractParameter("enablePostSLO", parameters)), Boolean.valueOf(extractParameter("supportOCESAttributeProfile", parameters)));
-		File zipFile = generateZipFile(request.getContextPath(), password, metadata, keystore, descriptor);
+		EntityDescriptor descriptor = generateSPDescriptor(
+				getBaseUrl(request),
+				entityId,
+				credential,
+				orgName,
+				orgUrl,
+				email,
+				phone,
+				givenName,
+				surName,
+				Boolean.valueOf(extractParameter("enableArtifact", parameters)),
+				Boolean.valueOf(extractParameter("enablePost", parameters)),
+				Boolean.valueOf(extractParameter("enableSoap", parameters)),
+				Boolean.valueOf(extractParameter("enablePostSLO", parameters)),
+				Boolean.valueOf(extractParameter("supportOCESAttributeProfile", parameters)),
+				Boolean.valueOf(extractParameter("enableEID", parameters)),
+				Boolean.valueOf(extractParameter("enableEIDNaturalPerson", parameters)),
+				Boolean.valueOf(extractParameter("enableEIDLegalPerson", parameters)));
+
+		File zipFile = generateZipFile(request.getContextPath(), password, metadata, keystore, descriptor, Boolean.valueOf(extractParameter("enableEID", parameters)));
 
 		byte[] configurationContents = saveConfigurationInSession(request, zipFile);
 		boolean written = writeConfiguration(getHome(), configurationContents);
@@ -284,16 +314,16 @@ public class ConfigurationHandler implements SAMLHandler {
 	}
 
 	@SuppressWarnings("serial")
-	protected File generateZipFile(final String contextPath, final String password, byte[] idpMetadata, byte[] keystore, EntityDescriptor descriptor) throws IOException {
+	protected File generateZipFile(final String contextPath, final String password, byte[] idpMetadata, byte[] keystore, EntityDescriptor descriptor, final boolean enableEID) throws IOException {
 		File zipFile = File.createTempFile("oiosaml-", ".zip");
 		ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
 		zos.putNextEntry(new ZipEntry(SAMLUtil.OIOSAML_DEFAULT_CONFIGURATION_FILE));
 		zos.write(renderTemplate("defaultproperties.vm", new HashMap<String, Object>() {
 			{
 				put("homename", Constants.PROP_HOME);
-
 				put("servletPath", contextPath);
 				put("password", password);
+				put("enableEID", enableEID);
 			}
 		}, false).getBytes());
 		zos.closeEntry();
@@ -318,7 +348,7 @@ public class ConfigurationHandler implements SAMLHandler {
 		return zipFile;
 	}
 
-	protected EntityDescriptor generateSPDescriptor(String baseUrl, String entityId, Credential credential, String orgName, String orgUrl, String email, boolean enableArtifact, boolean enableRedirect, boolean enableSoap, boolean enablePostSLO, boolean supportOCESAttributes) {
+	protected EntityDescriptor generateSPDescriptor(String baseUrl, String entityId, Credential credential, String orgName, String orgUrl, String email, String phone, String givenName, String surName, boolean enableArtifact, boolean enableRedirect, boolean enableSoap, boolean enablePostSLO, boolean supportOCESAttributes, boolean enableEID, boolean enableEIDNaturalPerson, boolean enableEIDLegalPerson) {
 		EntityDescriptor descriptor = SAMLUtil.buildXMLObject(EntityDescriptor.class);
 		descriptor.setEntityID(entityId);
 
@@ -330,8 +360,22 @@ public class ConfigurationHandler implements SAMLHandler {
 		contact.getEmailAddresses().add(SAMLUtil.createEmail(email));
 		contact.setCompany(SAMLUtil.createCompany(orgName));
 		contact.setType(ContactPersonTypeEnumeration.TECHNICAL);
-
+		contact.setSurName(SAMLUtil.createSurName(surName));
+		contact.setGivenName(SAMLUtil.createGivenName(givenName));
+		contact.getTelephoneNumbers().add(SAMLUtil.createTelephoneNumber(phone));
 		descriptor.getContactPersons().add(contact);
+		
+		if (enableEID) {
+			ContactPerson admContact = SAMLUtil.buildXMLObject(ContactPerson.class);
+			admContact.getEmailAddresses().add(SAMLUtil.createEmail(email));
+			admContact.setCompany(SAMLUtil.createCompany(orgName));
+			admContact.setType(ContactPersonTypeEnumeration.ADMINISTRATIVE);
+			admContact.setSurName(SAMLUtil.createSurName(surName));
+			admContact.setGivenName(SAMLUtil.createGivenName(givenName));
+			admContact.getTelephoneNumbers().add(SAMLUtil.createTelephoneNumber(phone));
+			descriptor.getContactPersons().add(admContact);			
+		}
+		
 		descriptor.setOrganization(SAMLUtil.createOrganization(orgName, orgName, orgUrl));
 
 		KeyDescriptor signingDescriptor = SAMLUtil.buildXMLObject(KeyDescriptor.class);
@@ -369,36 +413,73 @@ public class ConfigurationHandler implements SAMLHandler {
 			spDescriptor.getSingleLogoutServices().add(SAMLUtil.createSingleLogoutService(baseUrl + "/LogoutServiceHTTPPost", baseUrl + "/LogoutServiceHTTPRedirectResponse", SAMLConstants.SAML2_POST_BINDING_URI));
 		}
 
-		NameIDFormat x509SubjectNameIDFormat = SAMLUtil.createNameIDFormat(OIOSAMLConstants.NAMEIDFORMAT_X509SUBJECTNAME);
-		List<NameIDFormat> nameIDFormats = spDescriptor.getNameIDFormats();
-		nameIDFormats.add(x509SubjectNameIDFormat);
+		if (enableEID) {
+			NameIDFormat persistentNameIDFormat = SAMLUtil.createNameIDFormat(OIOSAMLConstants.NAMEIDFORMAT_PERSISTENT);
+			List<NameIDFormat> nameIDFormats = spDescriptor.getNameIDFormats();
+			nameIDFormats.add(persistentNameIDFormat);
+		}
+		else {
+			NameIDFormat x509SubjectNameIDFormat = SAMLUtil.createNameIDFormat(OIOSAMLConstants.NAMEIDFORMAT_X509SUBJECTNAME);
+			List<NameIDFormat> nameIDFormats = spDescriptor.getNameIDFormats();
+			nameIDFormats.add(x509SubjectNameIDFormat);
+		}
 
 		if (enableArtifact) {
 			spDescriptor.getArtifactResolutionServices().add(SAMLUtil.createArtifactResolutionService(baseUrl + "/SAMLAssertionConsumer"));
 		}
 
-		if (supportOCESAttributes) {
-			addAttributeConsumerService(spDescriptor, entityId);
+		if (supportOCESAttributes || (enableEID && enableEIDLegalPerson) || (enableEID && enableEIDNaturalPerson)) {
+			addAttributeConsumerService(spDescriptor, entityId, supportOCESAttributes, enableEIDLegalPerson, enableEIDNaturalPerson);
 		}
 
 		descriptor.getRoleDescriptors().add(spDescriptor);
 		return descriptor;
 	}
 
-	private static void addAttributeConsumerService(SPSSODescriptor spDescriptor, String serviceName) {
+	private static void addAttributeConsumerService(SPSSODescriptor spDescriptor, String serviceName, boolean supportOCESAttributes, boolean enableEIDLegalPerson, boolean enableEIDNaturalPerson) {
 		AttributeConsumingService service = SAMLUtil.createAttributeConsumingService(serviceName);
 
-		String[] required = { OIOSAMLConstants.ATTRIBUTE_SURNAME_NAME, OIOSAMLConstants.ATTRIBUTE_COMMON_NAME_NAME, OIOSAMLConstants.ATTRIBUTE_UID_NAME, OIOSAMLConstants.ATTRIBUTE_MAIL_NAME, OIOSAMLConstants.ATTRIBUTE_ASSURANCE_LEVEL_NAME, OIOSAMLConstants.ATTRIBUTE_SPECVER_NAME,
-				OIOSAMLConstants.ATTRIBUTE_SERIAL_NUMBER_NAME, OIOSAMLConstants.ATTRIBUTE_YOUTH_CERTIFICATE_NAME, OIOSAMLConstants.ATTRIBUTE_CERTIFICATE_ISSUER, };
-
-		String[] optional = { OIOSAMLConstants.ATTRIBUTE_UNIQUE_ACCOUNT_KEY_NAME, OIOSAMLConstants.ATTRIBUTE_CVR_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_ORGANISATION_NAME_NAME, OIOSAMLConstants.ATTRIBUTE_ORGANISATION_UNIT_NAME, OIOSAMLConstants.ATTRIBUTE_TITLE_NAME,
-				OIOSAMLConstants.ATTRIBUTE_POSTAL_ADDRESS_NAME, OIOSAMLConstants.ATTRIBUTE_PSEUDONYM_NAME, OIOSAMLConstants.ATTRIBUTE_USER_CERTIFICATE_NAME, OIOSAMLConstants.ATTRIBUTE_PID_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_CPR_NUMBER_NAME,
-				OIOSAMLConstants.ATTRIBUTE_RID_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_PRIVILEGES_INTERMEDIATE, OIOSAMLConstants.ATTRIBUTE_USER_ADMINISTRATOR_INDICATOR };
-		for (String attr : required) {
-			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute(attr, OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+		if (supportOCESAttributes) {
+			String[] required = { OIOSAMLConstants.ATTRIBUTE_SURNAME_NAME, OIOSAMLConstants.ATTRIBUTE_COMMON_NAME_NAME, OIOSAMLConstants.ATTRIBUTE_UID_NAME, OIOSAMLConstants.ATTRIBUTE_MAIL_NAME, OIOSAMLConstants.ATTRIBUTE_ASSURANCE_LEVEL_NAME, OIOSAMLConstants.ATTRIBUTE_SPECVER_NAME,
+					OIOSAMLConstants.ATTRIBUTE_SERIAL_NUMBER_NAME, OIOSAMLConstants.ATTRIBUTE_YOUTH_CERTIFICATE_NAME, OIOSAMLConstants.ATTRIBUTE_CERTIFICATE_ISSUER, };
+	
+			String[] optional = { OIOSAMLConstants.ATTRIBUTE_UNIQUE_ACCOUNT_KEY_NAME, OIOSAMLConstants.ATTRIBUTE_CVR_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_ORGANISATION_NAME_NAME, OIOSAMLConstants.ATTRIBUTE_ORGANISATION_UNIT_NAME, OIOSAMLConstants.ATTRIBUTE_TITLE_NAME,
+					OIOSAMLConstants.ATTRIBUTE_POSTAL_ADDRESS_NAME, OIOSAMLConstants.ATTRIBUTE_PSEUDONYM_NAME, OIOSAMLConstants.ATTRIBUTE_USER_CERTIFICATE_NAME, OIOSAMLConstants.ATTRIBUTE_PID_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_CPR_NUMBER_NAME,
+					OIOSAMLConstants.ATTRIBUTE_RID_NUMBER_IDENTIFIER_NAME, OIOSAMLConstants.ATTRIBUTE_PRIVILEGES_INTERMEDIATE, OIOSAMLConstants.ATTRIBUTE_USER_ADMINISTRATOR_INDICATOR };
+	
+			for (String attr : required) {
+				service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute(attr, OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			}
+	
+			for (String attr : optional) {
+				service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute(attr, OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			}
 		}
-		for (String attr : optional) {
-			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute(attr, OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+		
+		if (enableEIDLegalPerson) {
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:LegalPersonIdentifier", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:LegalName", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:LegalPersonAddress", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:VATRegistrationNumber", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:TaxReference", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:D-2012-17-EUIdentifier", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:LEI", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:EORI", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:SEED", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:legalperson:SIC", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+		}
+		
+		if (enableEIDNaturalPerson) {
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:PersonIdentifier", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:CurrentFamilyName", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:CurrentGivenName", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:DateOfBirth", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, true));
+
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:BirthName", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:PlaceOfBirth", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:CurrentAddress", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
+			service.getRequestAttributes().add(SAMLUtil.createRequestedAttribute("dk:gov:saml:attribute:eidas:naturalperson:Gender", OIOSAMLConstants.URI_ATTRIBUTE_NAME_FORMAT, false));
 		}
 
 		spDescriptor.getAttributeConsumingServices().add(service);

@@ -22,4 +22,7 @@ $homename=$servletPath
 oiosaml-sp.selfsignedcertificates=false
 
 # Disable revocation checking on OCES test certificats (because the CRL/OCSP endpoints are behind a firewall)
-oiosaml-cp.crl.disable-in-oces-test=true
+oiosaml-sp.crl.disable-in-oces-test=true
+
+# Enable this setting to be eid compatible. Note this effects how AuthnRequests are generated
+oiosaml-sp.eid.compatible=$enableEID
