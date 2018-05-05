@@ -33,7 +33,8 @@ public class LoggerFactory {
         for (Iterator<Logger> iterator = configurationImplementations.iterator(); iterator.hasNext();) {
             logger = iterator.next();
             if (iterator.hasNext()) {
-                log.error("Appears to be more than one logger implementation. Please check META-INF/services for occurencies. Choosing the implementation: " + logger.getClass().getName());
+// not really possible to log something at this point, as we do not have an instance of the Logger class yet!
+//                log.error("Appears to be more than one logger implementation. Please check META-INF/services for occurencies. Choosing the implementation: " + logger.getClass().getName());
                 break;
             }
         }
