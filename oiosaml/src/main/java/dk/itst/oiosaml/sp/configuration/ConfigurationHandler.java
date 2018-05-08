@@ -414,7 +414,7 @@ public class ConfigurationHandler implements SAMLHandler {
 		}
 
 		if (enableEID) {
-			NameIDFormat persistentNameIDFormat = SAMLUtil.createNameIDFormat(OIOSAMLConstants.NAMEIDFORMAT_PERSISTENT);
+			NameIDFormat persistentNameIDFormat = SAMLUtil.createNameIDFormat(OIOSAMLConstants.PERSISTENT);
 			List<NameIDFormat> nameIDFormats = spDescriptor.getNameIDFormats();
 			nameIDFormats.add(persistentNameIDFormat);
 		}
