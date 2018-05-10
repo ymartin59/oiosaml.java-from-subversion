@@ -139,7 +139,11 @@ public class ConfigurationHandlerTest extends AbstractServiceTests {
 
 	@Test
 	public void testGenerateSPDescriptor() {
-		EntityDescriptor d = handler.generateSPDescriptor("http://localhost", "entityId", credential, "orgName", "orgUrl", "email", true, true, true, true, false);
+		EntityDescriptor d = handler.generateSPDescriptor("http://localhost",
+				"entityId", credential, "orgName", "orgUrl", "email",
+				"phone", "givenName", "surName",
+				true, true, true, true, false,
+				false, false, false);
 		assertEquals("entityId", d.getEntityID());
 		assertEquals(1, d.getContactPersons().size());
 		assertNotNull(d.getOrganization());
@@ -149,7 +153,10 @@ public class ConfigurationHandlerTest extends AbstractServiceTests {
 	
 	@Test
 	public void testGenerateSPDescriptorWithAttributes() {
-		EntityDescriptor d = handler.generateSPDescriptor("http://localhost", "entityId", credential, "orgName", "orgUrl", "email", true, true, true, true, true);
+		EntityDescriptor d = handler.generateSPDescriptor("http://localhost", "entityId", credential, "orgName", "orgUrl", "email",
+				"phone", "givenName", "surName",
+				true, true, true, true, true,
+				false, false, false);
 		assertEquals(1, d.getSPSSODescriptor(SAMLConstants.SAML20P_NS).getAttributeConsumingServices().size());
 		assertEquals(22, d.getSPSSODescriptor(SAMLConstants.SAML20P_NS).getAttributeConsumingServices().get(0).getRequestAttributes().size());
 	}
@@ -175,8 +182,11 @@ public class ConfigurationHandlerTest extends AbstractServiceTests {
 	
 	@Test
 	public void testGenerateZipFile() throws Exception {
-		EntityDescriptor descriptor = handler.generateSPDescriptor("base", "entity", credential, "orgName", "orgUrl", "email", true, true, true, true, false);
-		File zipFile = handler.generateZipFile("/saml", "password", "idpMetadata".getBytes(), "keystore".getBytes(), descriptor);
+		EntityDescriptor descriptor = handler.generateSPDescriptor("base", "entity", credential, "orgName", "orgUrl", "email",
+				"phone", "givenName", "surName",
+				true, true, true, true, false,
+				false, false, false);
+		File zipFile = handler.generateZipFile("/saml", "password", "idpMetadata".getBytes(), "keystore".getBytes(), descriptor, false);
 		assertNotNull(zipFile);
 		
 		ZipFile f = new ZipFile(zipFile);
