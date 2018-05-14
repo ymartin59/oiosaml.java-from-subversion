@@ -23,10 +23,6 @@
  */
 package dk.itst.oiosaml.sp.model;
 
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
-
-import org.apache.commons.configuration.Configuration;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.opensaml.saml2.core.AuthnRequest;
@@ -36,9 +32,12 @@ import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.validation.ValidationException;
 
 import dk.itst.oiosaml.common.SAMLUtil;
+import dk.itst.oiosaml.configuration.SAMLConfiguration;
 import dk.itst.oiosaml.configuration.SAMLConfigurationFactory;
 import dk.itst.oiosaml.error.Layer;
 import dk.itst.oiosaml.error.WrappedException;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
 import dk.itst.oiosaml.sp.NameIDFormat;
 import dk.itst.oiosaml.sp.service.session.SessionHandler;
 import dk.itst.oiosaml.sp.service.util.Constants;
@@ -66,8 +65,8 @@ public class OIOAuthnRequest extends OIORequest {
 		authnRequest.setIssueInstant(new DateTime(DateTimeZone.UTC));
 		authnRequest.setDestination(ssoServiceLocation);
 
-		Configuration configuration = SAMLConfigurationFactory.getConfiguration().getSystemConfiguration();
-		if (!configuration.getBoolean(Constants.PROP_EID_COMPATIBLE, false)) {
+		SAMLConfiguration samlConfiguration = SAMLConfigurationFactory.getConfiguration();
+		if (!samlConfiguration.isConfigured() || !samlConfiguration.getSystemConfiguration().getBoolean(Constants.PROP_EID_COMPATIBLE, false)) {
 			authnRequest.setAssertionConsumerServiceURL(assertionConsumerUrl);
 			authnRequest.setProtocolBinding(protocolBinding);
 		}
