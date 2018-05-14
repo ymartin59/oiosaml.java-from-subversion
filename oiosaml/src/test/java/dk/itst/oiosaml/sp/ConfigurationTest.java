@@ -131,6 +131,9 @@ public class ConfigurationTest {
 		form.getInputByName("organisationName").setValueAttribute("Trifork");
 		form.getInputByName("organisationUrl").setValueAttribute("http://www.trifork.com");
 		form.getInputByName("email").setValueAttribute("jre@trifork.com");
+		form.getInputByName("phone").setValueAttribute("jre@trifork.com");
+		form.getInputByName("givenName").setValueAttribute("Joachim");
+		form.getInputByName("surName").setValueAttribute("Recht");
 		form.getInputByName("enableArtifact").setValueAttribute("true");
 		cb = (HtmlCheckBoxInput) form.getInputByName("enableArtifact");
 		cb.setChecked(true);
@@ -143,6 +146,7 @@ public class ConfigurationTest {
 		file.setValueAttribute(getClass().getResource("/IdPMetadata.xml").getFile());
 
 		HtmlPage configured = (HtmlPage) form.getInputByValue("Configure system").click();
+		
 		assertEquals(200, configured.getWebResponse().getStatusCode());
 		assertEquals(0, configured.getForms().size());
 		
