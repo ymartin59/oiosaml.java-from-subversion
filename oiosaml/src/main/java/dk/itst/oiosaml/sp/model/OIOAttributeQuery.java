@@ -100,9 +100,10 @@ public class OIOAttributeQuery extends OIORequest {
 			if (log.isDebugEnabled()) log.debug("Received attribute query response: " + oiores.toXML());
 			
 			Audit.log(Operation.ATTRIBUTEQUERY, false, getID(), oiores.toXML());
-			
-			oiores.decryptAssertion(credential, allowUnencryptedAssertion);
+
 			oiores.validateResponse(null, idpCertificates, false);
+			oiores.decryptAssertion(credential, allowUnencryptedAssertion);
+			oiores.validateAssertionSignature(idpCertificates);
 			
 			return oiores.getAssertion();
 		} catch (ValidationException e) {

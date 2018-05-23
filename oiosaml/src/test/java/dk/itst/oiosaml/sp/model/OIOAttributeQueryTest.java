@@ -43,6 +43,7 @@ import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.xml.security.x509.BasicX509Credential;
+import org.w3c.dom.Element;
 
 import dk.itst.oiosaml.common.SAMLUtil;
 import dk.itst.oiosaml.sp.NameIDFormat;
@@ -77,14 +78,16 @@ public class OIOAttributeQueryTest extends AbstractServiceTests {
 	public void testExecuteQuery() throws Exception {
 		q.addAttribute("uid", null);
 		Assertion assertion = TestHelper.buildAssertion(null, spMetadata.getEntityID());
-		final Response response = TestHelper.buildResponse(assertion);
-		
-		new OIOResponse(response).sign(credential);
+		new OIOAssertion(assertion).sign(credential);
+
+		Response response = TestHelper.buildResponse(assertion);
+		Element element = SAMLUtil.marshallObject(response);
+		final Response resp2 = (Response) SAMLUtil.unmarshallElement(element);
 
 		final SOAPClient client = context.mock(SOAPClient.class);
 		context.checking(new Expectations() {{
 			one(client).wsCall(with(same(q)), with(equal(dest)), with(equal("username")), with(equal("password")), with(equal(true)));
-			will(returnValue(response));
+			will(returnValue(resp2));
 		}});
 		OIOAssertion res = q.executeQuery(client, credential, "username", "password", true, idpMetadata.getFirstMetadata().getCertificates(), true);
 		assertNotNull(res);

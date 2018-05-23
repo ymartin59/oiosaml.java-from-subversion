@@ -47,14 +47,15 @@ import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.StatusCode;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.xml.security.x509.BasicX509Credential;
+import org.w3c.dom.Element;
 
 import dk.itst.oiosaml.common.SAMLUtil;
 import dk.itst.oiosaml.configuration.SAMLConfiguration;
 import dk.itst.oiosaml.configuration.SAMLConfigurationFactory;
 import dk.itst.oiosaml.sp.metadata.IdpMetadata;
 import dk.itst.oiosaml.sp.metadata.SPMetadata;
+import dk.itst.oiosaml.sp.model.OIOAssertion;
 import dk.itst.oiosaml.sp.model.OIOAttributeQuery;
-import dk.itst.oiosaml.sp.model.OIOResponse;
 import dk.itst.oiosaml.sp.service.AbstractServiceTests;
 import dk.itst.oiosaml.sp.service.TestHelper;
 import dk.itst.oiosaml.sp.service.util.Constants;
@@ -152,16 +153,21 @@ public class UserAttributeQueryTest extends AbstractServiceTests {
 		stmt.getAttributes().add(AttributeUtil.createAttribute("attr2", null, null));
 		ass.getAttributeStatements().add(stmt);
 
-		final Response resp = SAMLUtil.buildXMLObject(Response.class);
+		OIOAssertion oioAssertion = new OIOAssertion(ass);
+		oioAssertion.sign(credential);
+
+		Response resp = SAMLUtil.buildXMLObject(Response.class);
 		resp.getAssertions().add(ass);
 		resp.setIssuer(SAMLUtil.createIssuer(idpEntityId));
 		resp.setStatus(SAMLUtil.createStatus(StatusCode.SUCCESS_URI));
-		new OIOResponse(resp).sign(credential);
+
+		Element element = SAMLUtil.marshallObject(resp);
+		final Response resp2 = (Response) SAMLUtil.unmarshallElement(element);
 
 		context.checking(new Expectations() {
 			{
 				one(client).wsCall(with(any(OIOAttributeQuery.class)), with(equal(location)), with(aNull(String.class)), with(aNull(String.class)), with(equal(true)));
-				will(returnValue(resp));
+				will(returnValue(resp2));
 			}
 		});
 

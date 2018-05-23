@@ -128,6 +128,7 @@ public class OIOResponseTest extends AbstractTests {
 		srt.getAssertions().get(0).setSignature(null);
 		
 		response.validateResponse(srt.getDestination(), cert, false);
+		response.validateAssertionSignature(cert);
 	}
 	
 	@Test

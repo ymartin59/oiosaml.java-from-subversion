@@ -22,8 +22,6 @@
  */
 package dk.itst.oiosaml.sp.model;
 
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml2.encryption.Decrypter;
@@ -36,8 +34,9 @@ import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.security.keyinfo.KeyInfoCredentialResolver;
 import org.opensaml.xml.security.keyinfo.StaticKeyInfoCredentialResolver;
 
-import dk.itst.oiosaml.common.SAMLUtil;
 import dk.itst.oiosaml.helper.DeveloperHelper;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
 import dk.itst.oiosaml.sp.model.validation.ValidationException;
 
 public class OIOEncryptedAssertion {
@@ -61,16 +60,19 @@ public class OIOEncryptedAssertion {
 		kekResolver.getResolverChain().add(new SimpleRetrievalMethodEncryptedKeyResolver());
 		
 		try {
-			if (log.isDebugEnabled()) log.debug("Assertion encrypted: " + encrypted);
+			if (log.isDebugEnabled()) {
+				log.debug("Assertion encrypted: " + encrypted);
+			}
 
 			Decrypter decrypter = new Decrypter(null, keyResolver, kekResolver);
+			decrypter.setRootInNewDocument(true);
 
-			// due to a bug in OpenSAML, we have to convert the assertion to and from xml
-			// otherwise the signature will not validate later on
 			Assertion assertion = decrypter.decrypt(encrypted);
-			OIOAssertion res = new OIOAssertion(assertion);
-			assertion = (Assertion) SAMLUtil.unmarshallElementFromString(res.toXML());
-			if (log.isDebugEnabled()) log.debug("Decrypted assertion: " + res.toXML());
+
+			if (log.isDebugEnabled()) {
+				OIOAssertion res = new OIOAssertion(assertion);
+				log.debug("Decrypted assertion: " + res.toXML());
+			}
 
 			return new OIOAssertion(assertion);
 		} catch (DecryptionException e) {

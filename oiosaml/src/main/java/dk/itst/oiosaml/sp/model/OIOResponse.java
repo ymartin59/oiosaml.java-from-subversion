@@ -27,14 +27,14 @@ import java.security.cert.Certificate;
 import java.util.Collection;
 import java.util.Collections;
 
-import dk.itst.oiosaml.helper.DeveloperHelper;
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.StatusCode;
 import org.opensaml.xml.security.credential.Credential;
 
+import dk.itst.oiosaml.helper.DeveloperHelper;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
 import dk.itst.oiosaml.sp.model.validation.ValidationException;
 import dk.itst.oiosaml.sp.service.session.SessionHandler;
 
@@ -86,6 +86,31 @@ public class OIOResponse extends OIOAbstractResponse {
 		return handler.removeEntityIdForRequest(response.getInResponseTo());
 	}
 
+	public void validateAssertionSignature(Certificate certificate) {
+		validateAssertionSignature(Collections.singletonList(certificate));
+	}
+	
+	public void validateAssertionSignature(Collection<? extends Certificate> certificates) {
+		if (!response.getAssertions().isEmpty()) {
+			boolean valid = false;
+
+			if (certificates.size() == 0) {
+				DeveloperHelper.log("It is not possible to validate the signature on the assertion, because there are no valid certificates to check the signature against. This might be because revocation checking has failed on the IdP certificates");
+			}
+
+			for (Certificate certificate : certificates) {
+				OIOAssertion ass = getAssertion();
+				if (ass.verifySignature(certificate.getPublicKey())) {
+					valid = true;
+				}
+			}
+
+			if (!valid) {
+				throw new ValidationException("The assertion is not signed correctly");
+			}
+		}
+	}
+
 	public void validateResponse(String expectedDestination, Certificate certificate, boolean allowPassive) throws ValidationException {
 		validateResponse(expectedDestination, Collections.singletonList(certificate), allowPassive);
 	}
@@ -93,43 +118,23 @@ public class OIOResponse extends OIOAbstractResponse {
 	public void validateResponse(String expectedDestination, Collection<? extends Certificate> certificates, boolean allowPassive) throws ValidationException {
 		validateResponse(null, expectedDestination, allowPassive);
 
-		if (response.getAssertions().isEmpty() && !isPassive()) {
-			throw new ValidationException("Response must contain an Assertion. If the Response contains an encrypted Assertion, decrypt it before calling validate.");
+		if (!isPassive() && response.getAssertions().isEmpty() && response.getEncryptedAssertions().isEmpty()) {
+			throw new ValidationException("Response must contain an Assertion or EncryptedAssertion.");
 		}
 
-		if (!hasSignature() && isPassive()) {
+		if (!hasSignature()) {
 			return;
 		}
 
-		if (hasSignature() || isPassive()) {
-			boolean valid = false;
-			for (Certificate certificate : certificates) {
-				if (verifySignature(certificate.getPublicKey())) {
-					valid = true;
-				}
-			}
-			if (!valid) {
-				throw new ValidationException("The response is not signed correctly");
+		boolean valid = false;
+		for (Certificate certificate : certificates) {
+			if (verifySignature(certificate.getPublicKey())) {
+				valid = true;
 			}
 		}
-		else {
-			if (!response.getAssertions().isEmpty()) {
-				boolean valid = false;
-				
-				if (certificates.size() == 0) {
-					DeveloperHelper.log("It is not possible to validate the signature on the assertion, because there are no valid certificates to check the signature against. This might be because revocation checking has failed on the IdP certificates");
-				}
 
-				for (Certificate certificate : certificates) {
-					if (getAssertion().verifySignature(certificate.getPublicKey())) {
-						valid = true;
-					}
-				}
-
-				if (!valid) {
-					throw new ValidationException("The assertion is not signed correctly");
-				}
-			}
+		if (!valid) {
+			throw new ValidationException("The response is not signed correctly");
 		}
 	}
 
@@ -163,12 +168,16 @@ public class OIOResponse extends OIOAbstractResponse {
 	}
 
 	public boolean isPassive() {
-		if (response.getStatus() == null)
+		if (response.getStatus() == null) {
 			return false;
-		if (response.getStatus().getStatusCode() == null)
+		}
+		else if (response.getStatus().getStatusCode() == null) {
 			return false;
-		if (response.getStatus().getStatusCode().getStatusCode() == null)
-			return false;
+		}
+		else if (response.getStatus().getStatusCode().getStatusCode() == null) {
+			return false;			
+		}
+
 		return StatusCode.NO_PASSIVE_URI.equals(response.getStatus().getStatusCode().getStatusCode().getValue());
 	}
 }

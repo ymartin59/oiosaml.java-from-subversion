@@ -43,6 +43,7 @@ import org.opensaml.xml.signature.Signature;
 import org.opensaml.xml.signature.Signer;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
+import org.w3c.dom.Element;
 
 import dk.itst.oiosaml.common.OIOSAMLConstants;
 import dk.itst.oiosaml.common.SAMLUtil;
@@ -56,7 +57,6 @@ import dk.itst.oiosaml.sp.service.util.SOAPClient;
 import dk.itst.oiosaml.sp.service.util.Utils;
 
 public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
-
 	private SAMLAssertionConsumerHandler sh;
 	private Configuration configuration;
 	private RequestContext ctx;
@@ -118,7 +118,7 @@ public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
 		
 		
 	}
-	
+
 	@Test
 	public void testResolveSuccess() throws Exception {
 		final ByteArrayOutputStream bos = generateArtifact();
@@ -147,7 +147,7 @@ public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
 		expectCacheHeaders();
 		sh.handleGet(ctx);
 	}
-	
+
 	@Test
 	public void testPost() throws Exception {
 		String id = Utils.generateUUID();
@@ -282,6 +282,16 @@ public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
 		samlResponse.setInResponseTo(reqId);
 		
 		Assertion assertion = buildAssertion(spMetadata.getAssertionConsumerServiceLocation(0), spMetadata.getEntityID());
+		if (sign) {
+			Signature signature = SAMLUtil.buildXMLObject(Signature.class);
+		    signature.setSigningCredential(credential);
+	        SecurityHelper.prepareSignatureParams(signature, credential, null, null);
+	        assertion.setSignature(signature);
+		    SAMLUtil.marshallObject(assertion);
+
+	        Signer.signObject(signature);
+		}
+
 		if (!passive) {
 			samlResponse.setStatus(SAMLUtil.createStatus(StatusCode.SUCCESS_URI));
 	
@@ -292,18 +302,12 @@ public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
 			status.setValue(StatusCode.NO_PASSIVE_URI);
 			samlResponse.getStatus().getStatusCode().setStatusCode(status);
 		}
+
 		
-		if (sign) {
-			samlResponse = (Response) SAMLUtil.unmarshallElementFromString(XMLHelper.nodeToString(SAMLUtil.marshallObject(samlResponse)));
-			Signature signature = SAMLUtil.buildXMLObject(Signature.class);
-		    signature.setSigningCredential(credential);
-	        SecurityHelper.prepareSignatureParams(signature, credential, null, null);
-		    samlResponse.setSignature(signature);
-		    SAMLUtil.marshallObject(samlResponse);
-		    
-	        Signer.signObject(signature);
-		}
-		res.setMessage(samlResponse);
+		Element element = SAMLUtil.marshallObject(samlResponse);
+		final Response samlResponse2 = (Response) SAMLUtil.unmarshallElement(element);
+		
+		res.setMessage(samlResponse2);
 		
 		Envelope env = SAMLUtil.buildXMLObject(Envelope.class);
 		Body body = SAMLUtil.buildXMLObject(Body.class);
@@ -332,6 +336,5 @@ public class SAMLAssertionConsumerHandlerTest extends AbstractServiceTests {
 			invoked = true;
 			return succeed;
 		}
-		
 	}
 }

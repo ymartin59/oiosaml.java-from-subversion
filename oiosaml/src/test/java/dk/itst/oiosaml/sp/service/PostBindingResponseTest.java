@@ -11,6 +11,9 @@ import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.StatusCode;
+import org.opensaml.xml.security.SecurityHelper;
+import org.opensaml.xml.signature.Signature;
+import org.opensaml.xml.signature.Signer;
 import org.opensaml.xml.util.Base64;
 
 import dk.itst.oiosaml.common.SAMLUtil;
@@ -77,6 +80,14 @@ public class PostBindingResponseTest extends AbstractServiceTests {
 		response.setDestination(spMetadata.getAssertionConsumerServiceLocation(0));
 
 		Assertion assertion = TestHelper.buildAssertion(spMetadata.getAssertionConsumerServiceLocation(0), spMetadata.getEntityID());
+		
+		Signature signature = SAMLUtil.buildXMLObject(Signature.class);
+	    signature.setSigningCredential(credential);
+        SecurityHelper.prepareSignatureParams(signature, credential, null, null);
+        assertion.setSignature(signature);
+	    SAMLUtil.marshallObject(assertion);
+        Signer.signObject(signature);
+		
 		response.getAssertions().add(assertion);
 		
 		final String xml = TestHelper.signObject(response, credential);

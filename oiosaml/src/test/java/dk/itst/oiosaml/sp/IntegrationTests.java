@@ -64,7 +64,10 @@ import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.metadata.EntityDescriptor;
+import org.opensaml.xml.security.SecurityHelper;
 import org.opensaml.xml.security.x509.BasicX509Credential;
+import org.opensaml.xml.signature.Signature;
+import org.opensaml.xml.signature.Signer;
 import org.opensaml.xml.util.XMLHelper;
 import org.w3c.dom.Document;
 
@@ -201,12 +204,20 @@ public abstract class IntegrationTests {
 		
 		assertion.getAttributeStatements().get(0).getAttributes().clear();
 		assertion.getAttributeStatements().get(0).getAttributes().add(AttributeUtil.createAssuranceLevel(assuranceLevel));
+
+		// sign assertion
+		Signature signature = SAMLUtil.buildXMLObject(Signature.class);
+	    signature.setSigningCredential(credential);
+        SecurityHelper.prepareSignatureParams(signature, credential, null, null);
+        assertion.setSignature(signature);
+	    SAMLUtil.marshallObject(assertion);
+        Signer.signObject(signature);
 		
 		Response r = TestHelper.buildResponse(assertion);
 		r.setStatus(SAMLUtil.createStatus(status));
 		r.setInResponseTo(ar.getID());
 		OIOResponse response = new OIOResponse(r);
-		response.sign(credential);
+
 		
 		WebRequestSettings req = new WebRequestSettings(new URL(BASE + "/saml/SAMLAssertionConsumer"), SubmitMethod.POST);
 		req.setRequestParameters(Arrays.asList(
