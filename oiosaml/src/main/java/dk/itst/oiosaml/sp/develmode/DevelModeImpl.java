@@ -99,6 +99,7 @@ public class DevelModeImpl implements DevelMode {
 				ua = selectUser(selected, conf);
 				req.getSession().setAttribute(Constants.SESSION_USER_ASSERTION, ua);
 				res.sendRedirect(req.getRequestURI() + "?" + buildParameterString(req.getParameterMap()));
+				return;
 			}
 		}
 
