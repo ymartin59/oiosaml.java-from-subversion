@@ -141,26 +141,26 @@ public final class Utils {
 			boolean valid = false;
 
 			try {
-				Signature signer = Signature.getInstance(OIOSAMLConstants.SHA1_WITH_RSA);
+                                Signature signer = Signature.getInstance(OIOSAMLConstants.SHA256_WITH_RSA);
 				signer.initVerify(key);
-				signer.update(data);				
+				signer.update(data);
 				valid = signer.verify(sig);
 			}
 			catch (Exception ex) {
 				// the above code may throw an exception due to incorrect digest size,
-				// or similar - we will catch them all, and try with SHA-256 instead
+				// or similar - we will catch them all, and try with SHA-1 instead
 				;
 			}
-			
-			// if SHA-1 did not validate, we try with SHA-256
+
+			// if SHA-256 did not validate, we try with SHA-1
 			if (!valid) {
-				Signature signer = Signature.getInstance(OIOSAMLConstants.SHA256_WITH_RSA);
+                                Signature signer = Signature.getInstance(OIOSAMLConstants.SHA1_WITH_RSA);
 				signer.initVerify(key);
 				signer.update(data);
 
 				valid = signer.verify(sig);
 			}
-			
+
 			return valid;
 		}
 		catch (InvalidKeyException e) {
