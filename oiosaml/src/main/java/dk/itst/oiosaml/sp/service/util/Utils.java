@@ -131,33 +131,45 @@ public final class Utils {
 	 * @return true, if the signature is valid, otherwise false
 	 */
 	public static boolean verifySignature(byte[] data, PublicKey key, byte[] sig) {
-
-		if (log.isDebugEnabled())
+		if (log.isDebugEnabled()) {
 			log.debug("data...:" + new String(data));
-		if (log.isDebugEnabled())
 			log.debug("sig....:" + new String(sig));
-		if (log.isDebugEnabled())
 			log.debug("key....:" + key.toString());
+		}
 
 		try {
+			boolean valid = false;
+
 			try {
 				Signature signer = Signature.getInstance(OIOSAMLConstants.SHA1_WITH_RSA);
 				signer.initVerify(key);
-				signer.update(data);
-				return signer.verify(sig);
+				signer.update(data);				
+				valid = signer.verify(sig);
 			}
-			catch (SignatureException ex) {
-				// in case sha-1 check fails, try with sha-256 ( TODO: probably better to look at the supplied algorithm, but that requires a bit more refactoring of the code )
+			catch (Exception ex) {
+				// the above code may throw an exception due to incorrect digest size,
+				// or similar - we will catch them all, and try with SHA-256 instead
+				;
+			}
+			
+			// if SHA-1 did not validate, we try with SHA-256
+			if (!valid) {
 				Signature signer = Signature.getInstance(OIOSAMLConstants.SHA256_WITH_RSA);
 				signer.initVerify(key);
 				signer.update(data);
-				return signer.verify(sig);
+
+				valid = signer.verify(sig);
 			}
-		} catch (InvalidKeyException e) {
+			
+			return valid;
+		}
+		catch (InvalidKeyException e) {
 			throw new WrappedException(Layer.CLIENT, e);
-		} catch (NoSuchAlgorithmException e) {
+		}
+		catch (NoSuchAlgorithmException e) {
 			throw new WrappedException(Layer.CLIENT, e);
-		} catch (SignatureException e) {
+		}
+		catch (SignatureException e) {
 			log.error("Failed to verify signature", e);
 			return false;
 		}
