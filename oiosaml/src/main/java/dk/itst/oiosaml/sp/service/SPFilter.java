@@ -81,7 +81,7 @@ import dk.itst.oiosaml.sp.service.util.Constants;
  * </p>
  * 
  * <p>
- * The atual redirects are done by {@link BindingHandler} objects.
+ * The actual redirects are done by {@link BindingHandler} objects.
  * </p>
  * 
  * <p>
@@ -270,13 +270,15 @@ public class SPFilter implements Filter {
 		sessionHandlerFactory = SessionHandlerFactory.Factory.newInstance(conf);
 		sessionHandlerFactory.getHandler().resetReplayProtection(conf.getInt(Constants.PROP_NUM_TRACKED_ASSERTIONIDS));
 
+		ensureSignatureAlgorithm();
+		
 		log.info("Home url: " + conf.getString(Constants.PROP_HOME));
 		log.info("Assurance level: " + conf.getInt(Constants.PROP_ASSURANCE_LEVEL));
 		log.info("SP entity ID: " + SPMetadata.getInstance().getEntityID());
 		log.info("Base hostname: " + hostname);
 	}
 
-	private void ensureSignatureAlgorithm() {
+	private static void ensureSignatureAlgorithm() {
 		Configuration localConfig = SAMLConfigurationFactory.getConfiguration().getSystemConfiguration();
 		BasicSecurityConfiguration samlConfig = (BasicSecurityConfiguration) org.opensaml.Configuration.getGlobalSecurityConfiguration();
 		

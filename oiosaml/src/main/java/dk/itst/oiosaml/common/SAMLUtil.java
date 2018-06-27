@@ -39,8 +39,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import dk.itst.oiosaml.logging.Logger;
-import dk.itst.oiosaml.logging.LoggerFactory;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
@@ -94,6 +92,8 @@ import org.xml.sax.SAXException;
 
 import dk.itst.oiosaml.error.Layer;
 import dk.itst.oiosaml.error.WrappedException;
+import dk.itst.oiosaml.logging.Logger;
+import dk.itst.oiosaml.logging.LoggerFactory;
 
 /**
  * Class with utility methods for creating SAML objects.
@@ -392,9 +392,12 @@ public class SAMLUtil {
         DocumentBuilderFactory newFactory = DocumentBuilderFactory.newInstance();
         newFactory.setNamespaceAware(true);
 
-        // External entities has been disabled in order to prevent XML External Entity (XXE) attacks.
-        String FEATURE = "http://xml.org/sax/features/external-general-entities";
-        newFactory.setFeature(FEATURE, false);
+        newFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        newFactory.setFeature("http://apache.org/xml/features/dom/defer-node-expansion", false);
+        newFactory.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true);
+        newFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        newFactory.setExpandEntityReferences(false);
+        
         return newFactory;
     }
 
