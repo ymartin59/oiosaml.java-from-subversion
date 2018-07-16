@@ -9,6 +9,8 @@ import static org.junit.Assert.fail;
 
 import java.security.cert.X509Certificate;
 
+import javax.xml.namespace.QName;
+
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -20,9 +22,11 @@ import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AttributeStatement;
 import org.opensaml.saml2.core.AttributeValue;
 import org.opensaml.saml2.core.AuthnStatement;
+import org.opensaml.saml2.core.impl.AttributeBuilder;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.Namespace;
 import org.opensaml.xml.schema.XSAny;
+import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.schema.impl.XSAnyBuilder;
 import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.util.Base64;
@@ -351,6 +355,32 @@ public class UserAssertionImplTest {
 	@Test
 	public void testGetAssertionId() throws Exception {
 		assertEquals(as.getID(), new UserAssertionImpl(assertion).getAssertionId());
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Test
+	public void testAttributeWithUriNameFormat() {
+		XSAnyBuilder builder = new XSAnyBuilder();
+		XSAny ep = builder.buildObject(SAMLConstants.SAML20_NS, AttributeValue.DEFAULT_ELEMENT_LOCAL_NAME, SAMLConstants.SAML20_PREFIX);
+		ep.setTextContent(String.valueOf("myValue"));
+		ep.getUnknownAttributes().put(new QName(XMLConstants.XSI_NS, "type", XMLConstants.XSI_PREFIX), XMLConstants.XSD_PREFIX + ":" + XSString.TYPE_LOCAL_NAME);
+		ep.addNamespace(new Namespace(XMLConstants.XSI_NS, XMLConstants.XSI_PREFIX));
+
+		Attribute attribute = new AttributeBuilder().buildObject();
+		attribute.setName("uriAttribute");
+		attribute.setFriendlyName("uriAttribute");
+		attribute.setNameFormat(Attribute.URI_REFERENCE);
+		attribute.getAttributeValues().add(ep);
+
+		attributeStatement.getAttributes().add(attribute);
+		
+		UserAssertionImpl userAssertion = new UserAssertionImpl(assertion);
+		UserAttribute userAttribute = userAssertion.getAttribute("uriAttribute");
+		String format = userAttribute.getFormat();
+		String value = userAttribute.getValue();
+
+		assertEquals(Attribute.URI_REFERENCE, format);
+		assertEquals("myValue", value);
 	}
 	
 	@Test
