@@ -117,7 +117,11 @@ public class SingleVMSessionHandler implements SessionHandler {
 	}
 
 	public String getRelatedSessionId(String sessionIndex) {
-		return sessionIndexMap.get(sessionIndex).getObject();
+		if (sessionIndexMap.containsKey(sessionIndex)) {
+			return sessionIndexMap.get(sessionIndex).getObject();
+		}
+
+		return null;
 	}
 
 	public Object clone() throws CloneNotSupportedException {
