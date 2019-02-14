@@ -136,6 +136,7 @@ public class JdbcSessionHandler implements SessionHandler {
 		Connection con = getConnection();
 		try {
 			PreparedStatement ps = con.prepareStatement("SELECT id FROM assertions WHERE sessionindex = ?");
+			ps.setString(1, sessionIndex);
 			ResultSet rs = ps.executeQuery();
 			if (rs.next()) {
 				return rs.getString("id");
